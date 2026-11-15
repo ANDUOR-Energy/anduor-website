@@ -1,4 +1,5 @@
-/* Biểu đồ nắng và bóng — chuyển từ bản nháp cũ, mặc định TP.HCM, không vẽ Bát quái. */
+/* Biểu đồ nắng và bóng — chuyển từ bản nháp cũ, mặc định TP.HCM (vùng Nam), không vẽ Bát quái.
+   v3.16: ánh nắng trên tấm pin theo độ cao và hướng mặt trời (mô hình trời quang), chọn vùng Bắc / Trung / Nam. */
 (function () {
   'use strict';
   if (!document.getElementById('sky') || !document.getElementById('roof')) return;
@@ -17,12 +18,17 @@
 
   /* ---------- Thiên văn: vị trí mặt trời ---------- */
   var RAD = Math.PI / 180;
+  /* Ba vùng, mỗi vùng một điểm đại diện. Múi giờ UTC+7. lon chỉ dùng để đổi giờ đồng hồ sang giờ mặt trời
+     (giờ mặc định của “Hôm nay”); hình học bóng đổ tính theo giờ mặt trời nên chỉ phụ thuộc vĩ độ. */
+  var TZ = 7;
   var CITIES = {
-    hn: { name: {vi:'Hà Nội', en:'Hanoi'}, lat: 21.03 },
-    dn: { name: {vi:'Đà Nẵng', en:'Da Nang'}, lat: 16.05 },
-    hcm: { name: {vi:'TP.HCM', en:'Ho Chi Minh City'}, lat: 10.78 }
+    hn: { name: {vi:'Hà Nội', en:'Hanoi'}, region: {vi:'Bắc', en:'North'}, lat: 21.03, lon: 105.85 },
+    dn: { name: {vi:'Đà Nẵng', en:'Da Nang'}, region: {vi:'Trung', en:'Central'}, lat: 16.05, lon: 108.20 },
+    hcm: { name: {vi:'TP.HCM', en:'Ho Chi Minh City'}, region: {vi:'Nam', en:'South'}, lat: 10.78, lon: 106.70 }
   };
   var DAYS = { he: 23.44, xuan: 0, dong: -23.44 };
+  /* Ngày trong năm tương ứng (dùng cho hệ số khoảng cách Trái Đất – Mặt Trời trong mô hình bức xạ). */
+  var DAY_N = { he: 172, xuan: 80, dong: 355 };
   var DAY_NAMES = {
     today: {vi:'hôm nay', en:'today'},
     he: {vi:'hạ chí', en:'June solstice'},
@@ -47,6 +53,36 @@
     if (az < 0) az += 360;
     return { alt: alt, az: az };
   }
+  /* ---------- Bức xạ trời quang (ước tính, đơn giản) ----------
+     Mục đích: độ sáng của lớp nắng trên tấm pin theo đúng hình học, không phóng đại.
+     - Khối khí AM theo Kasten & Young (1989): AM = 1 / (sin h + 0.50572 · (h + 6.07995)^-1.6364), h tính bằng độ.
+     - Trực xạ pháp tuyến DNI theo Meinel (1976): DNI = I0 · 0.7^(AM^0.678), ngang mực nước biển, trời quang.
+       I0 = 1353 W/m² · (1 + 0.033 · cos(2π·n/365)) (hệ số khoảng cách theo ngày n trong năm).
+     - Tán xạ trên mặt phẳng: DHI ≈ 0,1 · DNI (tỉ lệ gần đúng cho trời quang).
+     - Mặt phẳng tấm pin: trong hình, tấm nằm phẳng trên mái bằng (nghiêng 0°), nên
+       cos(góc tới) = sin(độ cao) và nắng trên tấm G = DNI · sin h + DHI.
+     Không tính mây, bụi, nhiệt độ hay độ cao địa hình; con số chỉ để minh họa, ghi “ước tính”. */
+  function clearSky(alt, n) {
+    if (alt <= 0) return { am: Infinity, dni: 0, dhi: 0, g: 0 };
+    var am = 1 / (Math.sin(alt * RAD) + 0.50572 * Math.pow(alt + 6.07995, -1.6364));
+    var i0 = 1353 * (1 + 0.033 * Math.cos(2 * Math.PI * n / 365));
+    var dni = i0 * Math.pow(0.7, Math.pow(am, 0.678));
+    var dhi = 0.1 * dni;
+    return { am: am, dni: dni, dhi: dhi, g: dni * Math.sin(alt * RAD) + dhi };
+  }
+  /* Phương trình thời gian (phút), công thức gần đúng: dùng đổi giờ đồng hồ UTC+7 sang giờ mặt trời. */
+  function eotMin(n) { var B = 2 * Math.PI * (n - 81) / 364; return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B); }
+  function solarFromClock(clockH, lon, n) { return clockH + (lon - 15 * TZ) / 15 + eotMin(n) / 60; }
+  /* Màu nắng theo độ cao, chỉ pha từ bảng màu thương hiệu: thấp = cam vàng (trộn --sun và --gold),
+     cao = vàng trắng ấm (--gold pha --moonlight). */
+  var LOW = [236, 110, 36], HIGH = [250, 216, 128];
+  function lightColor(alt) {
+    var f = Math.max(0, Math.min(1, Math.sin(Math.max(0, alt) * RAD) / Math.sin(60 * RAD)));
+    f = Math.pow(f, 0.8);
+    var c = LOW.map(function (v, i) { return Math.round(v + (HIGH[i] - v) * f); });
+    return 'rgb(' + c.join(',') + ')';
+  }
+
   function dirName(az) {
     var names = ['Bắc', 'Đông Bắc', 'Đông', 'Đông Nam', 'Nam', 'Tây Nam', 'Tây', 'Tây Bắc'];
     return names[Math.round(az / 45) % 8];
@@ -146,6 +182,7 @@
   /* ---------- Mái nhà và bóng đổ ---------- */
   var roof = document.getElementById('roof');
   var S = 16, OX = 28, OY = 44;
+  var LG = {};
   var ROOF = { w: 24, h: 15 };
   function px(x, y) { return [OX + x * S, OY + y * S]; }
   function circlePoly(cx, cy, r, n) {
@@ -266,13 +303,31 @@
     var clip = svgEl('clipPath', { id: 'roof-clip' }, defs);
     svgEl('rect', { x: OX, y: OY, width: ROOF.w * S, height: ROOF.h * S }, clip);
     svgEl('rect', { x: OX, y: OY, width: ROOF.w * S, height: ROOF.h * S, 'class': 'roof-base' }, roof);
+    /* v3.16: hai dải chuyển màu theo hướng mặt trời (tọa độ của hình), cập nhật mỗi lần vẽ. */
+    function grad(id, n, bbox) {
+      var g = svgEl('linearGradient', bbox ? { id: id, x1: 0, y1: 0, x2: 1, y2: 0 } : { id: id, gradientUnits: 'userSpaceOnUse', x1: 0, y1: 0, x2: 440, y2: 0 }, defs);
+      var st = [], off = n === 3 ? [0, 0.55, 1] : null;
+      for (var i = 0; i < n; i++) st.push(svgEl('stop', { offset: off ? off[i] : i / (n - 1), 'stop-color': '#fff', 'stop-opacity': 0 }, g));
+      return { g: g, st: st };
+    }
+    LG.sun = grad('pv-sun', 3, true);   /* trên từng tấm: sáng ở cạnh hướng về mặt trời, nhạt dần như mặt kính */
+    LG.roof = grad('roof-sun', 2);      /* trên nền mái */
+    LG.glint = grad('pv-glint', 5);     /* vệt sáng chung cả dàn */
   })();
+  var roofLight = svgEl('rect', { x: OX, y: OY, width: ROOF.w * S, height: ROOF.h * S, fill: 'url(#roof-sun)', 'class': 'roof-sun' }, roof);
   var gShadow = svgEl('g', { 'clip-path': 'url(#roof-clip)' }, roof);
   var gPanels = svgEl('g', {}, roof);
+  var gLight = svgEl('g', { 'class': 'pv-light', 'aria-hidden': 'true' }, roof);
   panels.forEach(function (p) {
-    var xy = px(p.x0, p.y0);
-    p.node = svgEl('rect', { x: xy[0].toFixed(2), y: xy[1].toFixed(2), width: (PW * S).toFixed(2), height: (PH * S).toFixed(2), 'class': 'pv' }, gPanels);
+    var xy = px(p.x0, p.y0), a = { x: xy[0].toFixed(2), y: xy[1].toFixed(2), width: (PW * S).toFixed(2), height: (PH * S).toFixed(2) };
+    p.node = svgEl('rect', { x: a.x, y: a.y, width: a.width, height: a.height, 'class': 'pv' }, gPanels);
+    /* Lớp nắng và vệt sáng trên từng tấm; tấm bị che hoặc bị bỏ thì tắt. */
+    var g = svgEl('g', { 'class': 'pv-lit' }, gLight);
+    svgEl('rect', { x: a.x, y: a.y, width: a.width, height: a.height, fill: 'url(#pv-sun)' }, g);
+    svgEl('rect', { x: a.x, y: a.y, width: a.width, height: a.height, fill: 'url(#pv-glint)' }, g);
+    p.lit = g;
   });
+  var roofNight = svgEl('rect', { x: OX, y: OY, width: ROOF.w * S, height: ROOF.h * S, 'class': 'roof-night', opacity: 0 }, roof);
   (function buildObstacles() {
     var tum = OBST[0], a = px(tum.poly[0][0], tum.poly[0][1]), b = px(tum.poly[2][0], tum.poly[2][1]);
     svgEl('rect', { x: a[0], y: a[1], width: b[0] - a[0], height: b[1] - a[1], rx: 2, 'class': 'obst' }, roof);
@@ -295,6 +350,7 @@
 
   /* ---------- Điều khiển ---------- */
   var state = { city: 'hcm', day: 'today', layout: 'full', t: 9.5 };
+  var readEl = document.getElementById('sun-read');
   var tInput = document.getElementById('t');
   var tOut = document.getElementById('t-out');
   var statusEl = document.getElementById('sun-status');
@@ -308,12 +364,67 @@
     todayLab.dataset.vi = 'Hôm nay, ' + dd;
     todayLab.dataset.en = 'Today, ' + dd;
     todayLab.textContent = (lang()==='en') ? todayLab.dataset.en : todayLab.dataset.vi;
-    var h = d.getUTCHours() + d.getUTCMinutes() / 60;
+    /* Giờ đồng hồ UTC+7 đổi sang giờ mặt trời của vùng mặc định (kinh độ + phương trình thời gian). */
+    var h = solarFromClock(d.getUTCHours() + d.getUTCMinutes() / 60, CITIES[state.city].lon, dayOfYearVN());
     state.t = (h >= 6.5 && h <= 17.5) ? Math.round(h * 4) / 4 : 9.5;
     tInput.value = String(state.t);
   })();
 
   function getDecl() { return state.day === 'today' ? declOfDay(dayOfYearVN()) : DAYS[state.day]; }
+  function getDayN() { return state.day === 'today' ? dayOfYearVN() : DAY_N[state.day]; }
+
+  /* Ánh nắng trên mái và tấm pin. Độ đậm của lớp nắng tỉ lệ tuyến tính với G (W/m²) của mô hình
+     (0,06 + 0,74 · G/1050: mức sàn rất nhỏ để nắng sớm vẫn thấy màu), màu theo độ cao. */
+  var G_REF = 1050;
+  var GL = '#F5DFB9'; /* vệt sáng: 70% --moonlight + 30% --gold */
+  function sunVector(az) { return [Math.sin(az * RAD), -Math.cos(az * RAD)]; } /* trên hình: x sang Đông, y xuống Nam */
+  function setGrad(G, az, stops, bbox) {
+    var cx = OX + ROOF.w * S / 2, cy = OY + ROOF.h * S / 2, L = Math.sqrt(ROOF.w * ROOF.w + ROOF.h * ROOF.h) * S / 2;
+    var v = sunVector(az);
+    if (bbox) { cx = 0.5; cy = 0.5; L = 0.5; }
+    G.g.setAttribute('x1', (cx + v[0] * L).toFixed(1)); G.g.setAttribute('y1', (cy + v[1] * L).toFixed(1));
+    G.g.setAttribute('x2', (cx - v[0] * L).toFixed(1)); G.g.setAttribute('y2', (cy - v[1] * L).toFixed(1));
+    stops.forEach(function (s, i) {
+      var st = G.st[i];
+      if (s.o != null) st.setAttribute('offset', s.o.toFixed(3));
+      st.setAttribute('stop-color', s.c);
+      st.setAttribute('stop-opacity', s.a.toFixed(3));
+    });
+  }
+  var SUN = { alt: 0, az: 0, g: 0, dni: 0, alpha: 0, color: '' };
+  function renderLight(pos, n, shaded, ex) {
+    var lit = pos.alt > 0.5;
+    var cs = clearSky(lit ? pos.alt : 0, n);
+    var col = lightColor(pos.alt);
+    var alpha = lit ? 0.06 + 0.74 * Math.min(1, cs.g / G_REF) : 0;
+    setGrad(LG.sun, pos.az, [{ c: col, a: alpha }, { c: col, a: alpha * 0.3 }, { c: col, a: alpha * 0.08 }], true);
+    setGrad(LG.roof, pos.az, [{ c: col, a: alpha * 0.6 }, { c: col, a: alpha * 0.3 }]);
+    /* Vệt sáng mảnh vuông góc với hướng nắng, trượt theo giờ trong ngày. */
+    var dayFrac = Math.max(0, Math.min(1, (state.t - 6) / 12));
+    var p = 0.18 + 0.64 * dayFrac, w = 0.05, ga = lit ? 0.08 + 0.5 * Math.min(1, cs.g / G_REF) : 0;
+    setGrad(LG.glint, pos.az, [
+      { o: 0, c: GL, a: 0 }, { o: Math.max(0, p - w), c: GL, a: 0 }, { o: p, c: GL, a: ga },
+      { o: Math.min(1, p + w), c: GL, a: 0 }, { o: 1, c: GL, a: 0 }]);
+    roofLight.setAttribute('opacity', lit ? '1' : '0');
+    roofNight.setAttribute('opacity', lit ? '0' : '0.38');
+    panels.forEach(function (pn, i) {
+      var on = lit && !shaded.has(i) && !ex.has(i);
+      if (pn.litOn !== on) { pn.litOn = on; pn.lit.setAttribute('class', on ? 'pv-lit' : 'pv-lit off'); }
+    });
+    roof.setAttribute('data-irr', String(Math.round(cs.g)));
+    roof.setAttribute('data-alt', pos.alt.toFixed(1));
+    SUN = { alt: pos.alt, az: pos.az, g: cs.g, dni: cs.dni, am: cs.am, alpha: alpha, color: col, lit: lit,
+            litPanels: panels.filter(function (pn) { return pn.litOn; }).length };
+    window.__ANDUOR_SUN = SUN;
+    if (readEl) {
+      var en = lang() === 'en', reg = CITIES[state.city].region[en ? 'en' : 'vi'] + ' · ' + cityName(state.city);
+      var gR = Math.round(cs.g / 10) * 10;
+      readEl.textContent = lit
+        ? (en ? reg + ': sun ' + Math.round(pos.alt) + '° high · sunlight ~' + gR + ' W/m² (approx., clear sky)'
+              : reg + ': Mặt Trời cao ' + Math.round(pos.alt) + '° · nắng ~' + gR + ' W/m² (ước tính, trời quang)')
+        : (en ? reg + ': sun below the horizon · no sunlight' : reg + ': Mặt Trời dưới đường chân trời · không có nắng');
+    }
+  }
 
   var tableKey = '';
   function renderTable(lat, decl) {
@@ -368,6 +479,7 @@
     panels.forEach(function (p, i) {
       p.node.setAttribute('class', ex.has(i) ? 'pv removed' : (shaded.has(i) ? 'pv shaded' : 'pv'));
     });
+    renderLight(pos, getDayN(), shaded, ex);
 
     tOut.textContent = fmtTime(state.t);
     if (pos.alt <= 0.5) {
@@ -468,6 +580,8 @@
   }
   render();
   syncThumb();
+  /* Cho bộ thử: tính số liệu mà không đổi giao diện. */
+  window.__ANDUOR_SUNMODEL = { sunPos: sunPos, clearSky: clearSky, cities: CITIES, days: DAYS, dayN: DAY_N, lightColor: lightColor };
 
 
   document.addEventListener('anduor-lang', function () {

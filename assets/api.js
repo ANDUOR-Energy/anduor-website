@@ -1,4 +1,4 @@
-/* ANDUOR v3.15 — Cầu nối máy chủ cho bản GitHub Pages.
+/* ANDUOR v3.16 — Cầu nối máy chủ cho bản GitHub Pages.
    Trang tĩnh không có google.script.run, nên tệp này tạo một đối tượng cùng giao diện
    (google.script.run.withSuccessHandler(..).withFailureHandler(..).ten_ham(arg)),
    bên trong gọi fetch() POST tới APPS_SCRIPT_URL (đặt trong assets/config.js).
@@ -13,7 +13,7 @@
   if (window.google && window.google.script && window.google.script.run) return;
   var ACTIONS = ['ping', 'uploadChunk', 'submitRequest', 'submitFeedback'];
   var HARD_TIMEOUT = 120000; /* chặn treo mạng; thời gian chờ chính do site.js/feedback.js đặt */
-  var VER = 'v3.15';
+  var VER = 'v3.16';
 
   function clientId() {
     var k = 'anduor-cid', v = '';

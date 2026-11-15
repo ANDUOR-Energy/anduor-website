@@ -1,4 +1,4 @@
-/* Dải vàng nháp nội bộ (giống bản Apps Script v3.15) */
+/* Dải vàng nháp nội bộ (giống bản Apps Script v3.16) */
 .draft-banner{background:#F4B223;color:#1E1431;font:600 12px/18px var(--font);text-align:center;padding:4px 12px}
 /* v3.12–v3.13 — Góp ý nội bộ (chỉ bản Apps Script). Không dùng vh. */
 .draft-banner{position:sticky;top:0;z-index:12;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 12px}
