@@ -578,6 +578,96 @@
     var onMq = function () { if (roofSvg.isConnected) placeTime(); };
     if (mq.addEventListener) mq.addEventListener('change', onMq); else if (mq.addListener) mq.addListener(onMq);
   }
+  /* v3.18: tự chạy chậm (vô vi). Một ngày 06:00 → 18:00 trong khoảng 48 giây, thanh kéo chạy theo.
+     Chạm, kéo, bấm phím trên thanh kéo hoặc đổi vùng / ngày / cách xếp: tạm dừng, tự chạy lại sau 8 giây không chạm.
+     Nút “Tạm dừng” giữ dừng cho đến khi bấm “Tự chạy”. prefers-reduced-motion: không tự chạy (vẫn bấm “Tự chạy” được).
+     Chỉ chạy khi mục Nắng & bóng đang trên màn hình và thẻ không bị ẩn. Vẽ lại tối đa khoảng 20 lần mỗi giây. */
+  var playBtn = document.getElementById('t-play');
+  var nangSec = document.getElementById('nang') || roofSvg;
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var AUTO = { on: !reduceMotion, manualOff: reduceMotion, idle: 0, raf: 0, last: 0, lastDraw: 0, hold: 0, seen: false,
+               HOURS_PER_MS: 12 / 48000, IDLE_MS: 8000, HOLD_MS: 1600, FRAME_MS: 50 };
+  function autoRunning() { return AUTO.on && !AUTO.idle; }
+  function setPlayUi() {
+    if (!playBtn) return;
+    playBtn.hidden = false;
+    playBtn.setAttribute('data-state', autoRunning() ? 'on' : 'off');
+  }
+  function enterAuto() {
+    tInput.step = 'any';
+    if (tWrap) tWrap.classList.add('auto');
+    if (statusEl) statusEl.setAttribute('aria-live', 'off'); /* không đọc liên tục cho trình đọc màn hình */
+  }
+  function leaveAuto() {
+    tInput.step = String(tStep);
+    var v = Math.round(state.t / tStep) * tStep;
+    v = Math.min(tMax, Math.max(tMin, v));
+    tInput.value = String(v);
+    if (tWrap) tWrap.classList.remove('auto');
+    if (statusEl) statusEl.setAttribute('aria-live', 'polite');
+    if (state.t !== v) { state.t = v; syncThumb(); render(); }
+  }
+  function autoFrame(ts) {
+    AUTO.raf = 0;
+    if (!autoRunning() || document.hidden || !AUTO.seen || !tInput.isConnected) { AUTO.last = 0; return; }
+    if (!AUTO.last) AUTO.last = ts;
+    var dt = Math.min(100, ts - AUTO.last); AUTO.last = ts;
+    if (AUTO.hold > 0) { AUTO.hold -= dt; }
+    else {
+      var t = state.t + dt * AUTO.HOURS_PER_MS;
+      if (t >= tMax) { t = tMax; AUTO.hold = AUTO.HOLD_MS; AUTO.wrap = true; }
+      else if (AUTO.wrap) { AUTO.wrap = false; }
+      state.t = t;
+      if (ts - AUTO.lastDraw >= AUTO.FRAME_MS || t === tMax) {
+        AUTO.lastDraw = ts;
+        tInput.value = String(t);
+        syncThumb(); render();
+      }
+    }
+    if (AUTO.hold <= 0 && state.t >= tMax) { state.t = tMin; tInput.value = String(tMin); syncThumb(); render(); }
+    AUTO.raf = requestAnimationFrame(autoFrame);
+  }
+  function autoStart() {
+    setPlayUi();
+    if (!autoRunning()) return;
+    enterAuto();
+    if (!AUTO.raf && AUTO.seen && !document.hidden) { AUTO.last = 0; AUTO.raf = requestAnimationFrame(autoFrame); }
+  }
+  function autoStop() {
+    if (AUTO.raf) { cancelAnimationFrame(AUTO.raf); AUTO.raf = 0; }
+    leaveAuto();
+    setPlayUi();
+  }
+  /* Người dùng chạm: tạm dừng, chờ 8 giây rồi chạy lại (nếu chưa bấm Tạm dừng). */
+  function userTouched(ev) {
+    if (!AUTO.on) return;
+    /* Giá trị người dùng vừa đặt (bằng phím hoặc mã) được giữ, không bị làm tròn về vị trí tự chạy. */
+    if (ev && ev.type === 'input') { var uv = parseFloat(tInput.value); if (!isNaN(uv)) state.t = uv; }
+    var wasRunning = autoRunning();
+    clearTimeout(AUTO.idle);
+    AUTO.idle = setTimeout(function () { AUTO.idle = 0; autoStart(); }, AUTO.IDLE_MS);
+    if (wasRunning) autoStop(); else setPlayUi();
+  }
+  if (window.requestAnimationFrame) {
+    ['pointerdown', 'keydown', 'focus'].forEach(function (ev) { tInput.addEventListener(ev, userTouched, true); });
+    tInput.addEventListener('input', function (e) { if (autoRunning()) userTouched(e); });
+    document.querySelectorAll('input[name="city"], input[name="day"], input[name="layout"]').forEach(function (inp) {
+      inp.addEventListener('change', userTouched);
+    });
+    if (playBtn) playBtn.addEventListener('click', function () {
+      clearTimeout(AUTO.idle); AUTO.idle = 0;
+      if (autoRunning()) { AUTO.on = false; AUTO.manualOff = true; autoStop(); }
+      else { AUTO.on = true; AUTO.manualOff = false; autoStart(); }
+    });
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { AUTO.seen = es[0].isIntersecting; if (AUTO.seen) autoStart(); }, { threshold: 0.15 }).observe(nangSec);
+    } else { AUTO.seen = true; }
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) autoStart(); });
+    setPlayUi();
+    if (autoRunning()) enterAuto();
+    window.__ANDUOR_AUTO = { state: function () { return { on: AUTO.on, running: autoRunning() && !!AUTO.raf, idle: !!AUTO.idle, t: state.t, value: tInput.value, step: tInput.step, seen: AUTO.seen, reduce: reduceMotion }; },
+      IDLE_MS: AUTO.IDLE_MS, setIdle: function (ms) { AUTO.IDLE_MS = ms; } };
+  }
   render();
   syncThumb();
   /* Cho bộ thử: tính số liệu mà không đổi giao diện. */
