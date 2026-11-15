@@ -1,0 +1,59 @@
+/* Dải vàng nháp nội bộ (giống bản Apps Script v3.15) */
+.draft-banner{background:#F4B223;color:#1E1431;font:600 12px/18px var(--font);text-align:center;padding:4px 12px}
+/* v3.12–v3.13 — Góp ý nội bộ (chỉ bản Apps Script). Không dùng vh. */
+.draft-banner{position:sticky;top:0;z-index:12;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 12px}
+.hd{top:var(--banner-h,26px)}
+section,.product{scroll-margin-top:calc(88px + var(--banner-h,26px))}
+.fb-open{display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border:1.5px solid #1E1431;border-radius:9999px;background:#1E1431;color:#F4B223;font:700 12px/18px var(--font);cursor:pointer}
+.fb-open:hover{background:transparent;color:#1E1431}
+.fb-open:focus-visible{outline:3px solid #6B4FD8;outline-offset:2px}
+.fb-backdrop{position:fixed;inset:0;z-index:40;background:rgba(30,20,49,.45)}
+.fb-modal{position:absolute;left:50%;transform:translateX(-50%);z-index:41;width:min(520px,calc(100% - 24px));box-sizing:border-box;background:var(--surface-raised);color:var(--ink);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:var(--r-lg);padding:20px;box-shadow:0 16px 48px rgba(30,20,49,.28)}
+.fb-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fb-title{margin:0;font:700 20px/28px var(--font)}
+.fb-x{flex:none;width:40px;height:40px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--ink);font:400 24px/1 var(--font);cursor:pointer}
+.fb-sub{margin:4px 0 12px;color:var(--ink-muted)}
+.fb-label{display:block;margin-top:12px;font:600 13px/20px var(--font)}
+.fb-req{color:var(--sun-ink,#B8400F)}
+.fb-modal input,.fb-modal textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font:400 15px/22px var(--font)}
+.fb-modal textarea{resize:vertical;min-height:120px}
+.fb-modal [aria-invalid="true"]{border-color:var(--sun)}
+.fb-count{margin-top:4px;text-align:right;color:var(--ink-muted)}
+.fb-status:empty{display:none}
+.fb-status{margin-top:8px;padding:10px 12px;border-radius:var(--r-sm)}
+.fb-status.ok{border:2px solid var(--moon)}
+.fb-status.err{border:2px solid var(--sun);font-weight:600}
+.fb-status.busy{color:var(--ink-muted)}
+.fb-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:16px}
+.fb-actions .btn{min-height:44px;padding:0 20px}
+/* v3.13: nút “Góp ý” theo từng mục, góc phải trên, nằm trong khoảng đệm trên của mục (không chèn vào dòng tiêu đề) */
+.fb-host{position:relative}
+.fb-sec{position:absolute;top:-32px;right:0;z-index:3;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px;border:1.5px solid var(--moon);border-radius:9999px;background:var(--surface-raised);color:var(--moon);font:600 12px/1 var(--font);cursor:pointer;opacity:.92}
+.fb-sec:hover{background:var(--moon);color:#F5F3F9;opacity:1}
+.fb-sec:focus-visible{outline:3px solid var(--gold);outline-offset:2px;opacity:1}
+.hero-full .fb-sec,.cto-band .fb-sec,.night-band .fb-sec{border-color:var(--gold);color:var(--gold);background:rgba(36,20,58,.6)}
+.hero-full .fb-sec:hover,.cto-band .fb-sec:hover,.night-band .fb-sec:hover{background:var(--gold);color:#1E1431}
+.hero-full .wrap.fb-host > .fb-sec{grid-column:auto}
+.fb-anon{display:flex;align-items:center;gap:8px;margin-top:8px;font:500 14px/22px var(--font);cursor:pointer}
+.fb-anon input{width:18px;height:18px;margin:0;accent-color:var(--moon)}
+.fb-modal input#fb-anon{display:inline-block;width:18px;padding:0}
+.fb-modal input:disabled{opacity:.5;cursor:not-allowed}
+/* v3.14: điện thoại — dải vàng một dòng, chữ nhỏ, không dính (cuộn đi cùng trang). */
+.draft-banner .fb-short{display:none}
+@media (max-width:760px){
+  .draft-banner{position:relative;flex-wrap:nowrap;justify-content:space-between;gap:8px;min-height:30px;padding:2px 10px 2px 12px;font:600 11px/16px var(--font);text-align:left}
+  .draft-banner .draft-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .draft-banner .fb-open{position:relative;flex:none;min-height:24px;padding:0 10px;font:700 11px/16px var(--font)}
+  .draft-banner .fb-open::after{content:"";position:absolute;left:-6px;right:-6px;top:-8px;bottom:-8px}
+  .draft-banner .fb-long{display:none}
+  .draft-banner .fb-short{display:inline}
+  .hd{top:0}
+  .fb-sec{height:30px;top:-34px;right:24px;padding:0 10px}
+  .fb-sec::after{content:"";position:absolute;left:0;right:0;top:-5px;bottom:-5px}
+  .fb-modal{padding:16px}
+}
+@media (max-width:760px){section,.product{scroll-margin-top:60px}}
+@media (max-width:420px){.fb-sec{right:16px}}
+
+/* GitHub Pages: ô bẫy bot trong hộp góp ý (ẩn với người dùng) */
+.fb-hp{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
