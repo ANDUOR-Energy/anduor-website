@@ -1,16 +1,17 @@
-/* v3.16 — BẢN XEM THỬ: bầu trời làm nền cho phần đầu trang (“Hai nguồn sáng, một năng lượng.”).
-   Chỉ bật khi có ?hero=bg trên địa chỉ trang (GitHub Pages) hoặc ANDUOR_CFG.heroBg (Apps Script, doGet đọc ?hero=bg).
-   Mặc định của trang KHÔNG đổi. Gồm: sao, Mặt Trăng đúng pha theo ngày (giờ Việt Nam), cung đường Mặt Trời,
+/* v3.17 — Bầu trời làm nền cho phần đầu trang (“Hai nguồn sáng, một năng lượng.”), là mặc định.
+   Tắt và hiện lại thẻ Mặt Trăng / nửa vòng Mặt Trời cũ khi có ?hero=card (GitHub Pages)
+   hoặc ANDUOR_CFG.heroCard (Apps Script, doGet đọc ?hero=card).
+   Gồm: sao, Mặt Trăng đúng pha theo ngày (giờ Việt Nam), cung đường Mặt Trời,
    mái nhà có tấm pin ở dưới cùng. Chỉ dùng màu thương hiệu (đêm tím, cam mặt trời, vàng, ánh trăng).
    Tôn trọng prefers-reduced-motion: đứng yên, Mặt Trời đặt theo giờ thật. */
 (function () {
   'use strict';
   var hero = document.querySelector('.hero-full');
   if (!hero) return;
-  var on = false;
-  try { on = new URLSearchParams(location.search).get('hero') === 'bg'; } catch (e) {}
-  if (!on && window.ANDUOR_CFG && window.ANDUOR_CFG.heroBg) on = true;
-  if (!on) return;
+  var off = false;
+  try { off = new URLSearchParams(location.search).get('hero') === 'card'; } catch (e) {}
+  if (!off && window.ANDUOR_CFG && window.ANDUOR_CFG.heroCard) off = true;
+  if (off) { document.body.classList.remove('hero-bg'); return; }
   document.body.classList.add('hero-bg');
   var NS = 'http://www.w3.org/2000/svg', RAD = Math.PI / 180;
   function el(tag, a, p) { var n = document.createElementNS(NS, tag); for (var k in a) n.setAttribute(k, a[k]); if (p) p.appendChild(n); return n; }
@@ -60,10 +61,10 @@
 
     el('rect', { x: 0, y: 0, width: W, height: H, fill: 'url(#hs-sky)' }, svg);
     var roofH = mobile ? 46 : 64, roofTop = H - roofH;
-    /* Cung Mặt Trời: máy tính đặt ở nửa phải (chữ ở trái). */
-    /* Điện thoại: cảnh trời nằm ở dải dưới cùng, dưới các nút; sao vẫn phủ cả nền sau chữ. */
-    var x0 = mobile ? W * 0.07 : W * 0.46, x1 = mobile ? W * 0.93 : W * 0.97;
-    var top = mobile ? roofTop - 132 : H * 0.14;
+    /* Cung Mặt Trời: máy tính đặt ở nửa phải (chữ ở trái), giữ bố cục ảnh v3.16 ?hero=bg. */
+    /* Điện thoại: cung và Mặt Trăng ở vùng trên, phía sau chữ; mái nhà ở mép dưới. */
+    var x0 = mobile ? W * 0.06 : W * 0.46, x1 = mobile ? W * 0.94 : W * 0.97;
+    var top = mobile ? Math.max(28, H * 0.08) : H * 0.14;
     geo = { cx: (x0 + x1) / 2, rx: (x1 - x0) / 2, base: roofTop - 4, ry: roofTop - 4 - top, roofTop: roofTop };
     /* Sao */
     var rand = rng(20261115), n = Math.round(W * roofTop / (mobile ? 5200 : 7000)), gS = el('g', { 'class': 'hs-stars' }, svg);
@@ -76,14 +77,14 @@
     var d = 'M' + x0.toFixed(1) + ' ' + geo.base.toFixed(1) + ' A' + geo.rx.toFixed(1) + ' ' + geo.ry.toFixed(1) + ' 0 0 1 ' + x1.toFixed(1) + ' ' + geo.base.toFixed(1);
     el('path', { d: d, fill: 'none', stroke: '#F4B223', 'stroke-opacity': 0.42, 'stroke-width': 1.5, 'stroke-dasharray': '2 7', 'stroke-linecap': 'round' }, svg);
     /* Mặt Trăng (đúng pha) */
-    var mr = mobile ? 14 : 24, mx = mobile ? W - 46 : (x0 + (x1 - x0) * 0.78), my = mobile ? roofTop - 112 : H * 0.17;
+    var mr = mobile ? 16 : 24, mx = mobile ? W * 0.84 : (x0 + (x1 - x0) * 0.78), my = mobile ? Math.max(36, H * 0.13) : H * 0.17;
     var gM = el('g', { 'class': 'hs-moon', transform: 'translate(' + mx.toFixed(1) + ' ' + my.toFixed(1) + ')' }, svg);
     R.moonGlow = el('circle', { r: mr * 3.2, fill: 'url(#hs-mglow)' }, gM);
     el('circle', { r: mr, fill: '#F5F3F9', 'fill-opacity': 0.10, stroke: '#F5F3F9', 'stroke-opacity': 0.22, 'stroke-width': 1 }, gM);
     var k = illum, rx = Math.abs(1 - 2 * k) * mr, sw = waxing ? 1 : 0, back = (k < 0.5) ? (waxing ? 0 : 1) : (waxing ? 1 : 0);
     if (k > 0.005) el('path', { d: 'M0 ' + (-mr) + ' A' + mr + ' ' + mr + ' 0 0 ' + sw + ' 0 ' + mr + ' A' + rx.toFixed(2) + ' ' + mr + ' 0 0 ' + back + ' 0 ' + (-mr) + ' Z', fill: '#F5F3F9' }, gM);
     /* Mặt Trời */
-    var sr2 = mobile ? 13 : 20;
+    var sr2 = mobile ? 15 : 20;
     R.sun = el('g', { 'class': 'hs-sun' }, svg);
     R.sunGlow = el('circle', { r: sr2 * 3.4, fill: 'url(#hs-glow)' }, R.sun);
     R.sunDisc = el('circle', { r: sr2, fill: '#E94E1B' }, R.sun);

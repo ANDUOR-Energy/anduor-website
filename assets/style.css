@@ -695,22 +695,22 @@ cite.tao-cite{display:inline-flex}
 .sun-read{margin:6px 0 0;font-size:13px;line-height:20px;font-weight:500;color:var(--ink-muted);font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion:reduce){.pv-lit{transition:none}}
 
-/* ===== v3.16: BẢN XEM THỬ nền bầu trời cho phần đầu trang (chỉ khi body.hero-bg, bật bằng ?hero=bg) ===== */
+/* ===== v3.17: nền bầu trời là mặc định (body.hero-bg). ?hero=card hiện lại thẻ cũ để so sánh. ===== */
 .hero-bg .hero-full{position:relative;overflow:hidden;isolation:isolate;min-height:600px;background:#24143A}
 .hero-bg .hero-full > .wrap{position:relative;z-index:2}
 .hero-bg .hero-art{display:none}
 .hero-sky{position:absolute;inset:0;z-index:0;pointer-events:none}
 .hero-sky-svg{display:block;width:100%;height:100%}
-/* Lớp che sau chữ: máy tính che bên trái, để trống bầu trời bên phải */
+/* Lớp che sau chữ: máy tính che bên trái, để trống bầu trời bên phải (giữ như ảnh v3.16 ?hero=bg) */
 .hero-sky::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(36,20,58,.90) 0,rgba(36,20,58,.82) 38%,rgba(36,20,58,.35) 58%,rgba(36,20,58,0) 72%)}
 .hero-bg .hero-full{padding-bottom:120px}
 .hs-stars .tw{animation:hs-tw 5s ease-in-out infinite}
 @keyframes hs-tw{0%,100%{opacity:.25}50%{opacity:.85}}
 @media (min-width:900px){.hero-bg .hero-full .hero-text{grid-column:span 7}}
 @media (max-width:759px){
-  .hero-bg .hero-full{min-height:0;padding-bottom:200px}
-  /* Điện thoại: chữ chiếm cả bề ngang, che đều từ trên xuống, để lộ mái nhà dưới cùng */
-  .hero-sky::after{background:linear-gradient(180deg,rgba(36,20,58,.66) 0,rgba(36,20,58,.78) 10%,rgba(36,20,58,.78) calc(100% - 250px),rgba(36,20,58,0) calc(100% - 170px))}
+  /* Điện thoại: bầu trời phủ cả nền sau chữ; chỉ chừa mép dưới cho dải mái, không xếp cảnh trời dưới các nút */
+  .hero-bg .hero-full{min-height:0;padding-bottom:72px}
+  .hero-sky::after{background:linear-gradient(180deg,rgba(36,20,58,.68) 0,rgba(36,20,58,.78) 12%,rgba(36,20,58,.78) calc(100% - 88px),rgba(36,20,58,.28) calc(100% - 56px),rgba(36,20,58,0) calc(100% - 46px))}
 }
 @media (prefers-reduced-motion:reduce){.hs-stars .tw{animation:none}}
 /* Nút Góp ý nội bộ nằm trên bầu trời: nền đặc để chữ luôn rõ */
