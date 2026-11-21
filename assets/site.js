@@ -1,17 +1,17 @@
-/* Ngôn ngữ, liên hệ [CHỜ CHỐT], công cụ kiểm tra, danh sách khảo sát, form. */
+/* Ngôn ngữ, liên hệ, công cụ kiểm tra, danh sách khảo sát, form. */
 (function () {
   'use strict';
   var d = document, h = d.documentElement;
 
-  /* Email và điện thoại theo tài liệu công khai 01/10 (14/11/2026). Zalo, MST, khiếu nại vẫn để trống. Địa chỉ đã ghi trong HTML. Người đại diện không đưa lên trang. */
+  /* MST và địa chỉ theo Thông báo của Phòng Đăng ký kinh doanh TP.HCM ngày 18/11/2026. Có số Zalo thì điền vào zalo; để trống thì trang không hiện Zalo. */
   var CONFIG = {
     email: 'info@anduor.com',
     phone: '+84 976 350 466',
     phoneHref: '+84976350466',
     zalo: '',
     address: '',
-    maSoThue: '',
-    khieuNai: ''
+    maSoThue: '0319800794',
+    khieuNai: ''  /* để trống: giữ email và điện thoại đã ghi trong HTML */
   };
   var MAX_BILL_BYTES = 10 * 1024 * 1024;
   var MAX_BILLS = 5;
@@ -77,8 +77,7 @@
         node.textContent = value;
       }
     } else {
-      node.textContent = lang() === 'en' ? '[TO BE CONFIRMED]' : '[CHỜ CHỐT]';
-      node.classList.add('pending');
+      return; /* bản công khai: không hiện chữ chờ chốt */
     }
   }
 
@@ -833,17 +832,15 @@
             ? 'No bill file was selected in the form. Please attach the bills to this email.'
             : 'Chưa chọn tệp hóa đơn trên biểu mẫu. Xin đính kèm hóa đơn vào email này.');
         }
-        setStatus('err', 'This page cannot send files by itself yet. Please email the bills to ' + email + '.',
-          'Trang này chưa gửi được tệp. Quý khách gửi hóa đơn tới ' + email + '.');
+        setStatus('ok', 'Your email app has opened with the details filled in. Please attach the bills and send it to ' + email + '.',
+          'Ứng dụng email đã mở với thông tin quý khách vừa nhập. Quý khách đính kèm hóa đơn rồi gửi tới ' + email + '.');
         location.href = 'mailto:' + email
           + '?subject=' + encodeURIComponent(L === 'en' ? 'ANDUOR enquiry' : 'Liên hệ ANDUOR')
           + '&body=' + encodeURIComponent(body.join('\n'));
       }
 
       if (!endpoint) {
-        mailtoFallback(L === 'en'
-          ? 'The file-intake address is not yet published. Bills should be emailed to ' + email + '.'
-          : 'Địa chỉ tiếp nhận tệp chưa được công bố. Xin gửi hóa đơn tới ' + email + '.');
+        mailtoFallback('');
         return;
       }
 
